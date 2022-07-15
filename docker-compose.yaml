@@ -1,0 +1,74 @@
+version: '3.7'
+
+services:
+
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka-server
+    restart: always
+    ports:
+      - "8761:8761"
+
+  currency-exchange-service:
+    build: ./currency-exchange-service
+    container_name: currency-exchange-service
+    restart: always
+    depends_on:
+      - eureka-server
+      - zipkin-server
+    environment:
+      - SPRING.ZIPKIN.BASE_URL = http://zipkin-server:9411/
+      - EUREKA.CLIENT.SERVICE_URL.DEFAULT_ZONE = http://eureka-server:8761/eureka
+      # - SPRING.CONFIG.IMPORT = optional:configserver:http://cloud-config-server:8888
+    ports:
+      - "8000:8000"
+
+  currency-conversion-service:
+    build: ./currency-conversion-service
+    container_name: currency-conversion-service
+    restart: always
+    depends_on:
+      - eureka-server
+      - zipkin-server
+    environment:
+      - SPRING.ZIPKIN.BASE_URL = http://zipkin-server:9411/
+      - EUREKA.CLIENT.SERVICE_URL.DEFAULT_ZONE = http://eureka-server:8761/eureka
+      # - SPRING.CONFIG.IMPORT = optional:configserver:http://cloud-config-server:8888
+    ports:
+      - "8100:8100"
+
+  # https://github.com/hyness/spring-cloud-config-server 
+  # cloud-config-server:
+  #   build: ./cloud-config-server
+  #   container_name: cloud-config-server
+  #   restart: always
+  #   depends_on:
+  #     - eureka-server
+  #     - zipkin-server
+  #   environment:
+  #     - SPRING.ZIPKIN.BASE_URL = http://zipkin-server:9411/
+  #     - EUREKA.CLIENT.SERVICE_URL.DEFAULT_ZONE = http://eureka-server:8761/eureka
+  #     - SPRING.CLOUD.CONFIG.SERVER.GIT.URI = https://github.com/slappidyslap/git-localconfig-repo
+  #   ports:
+  #     - "8888:8888"
+  
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    restart: always
+    depends_on:
+      - eureka-server
+      - zipkin-server
+    environment:
+      - SPRING.ZIPKIN.BASE_URL = http://zipkin-server:9411/
+      - EUREKA.CLIENT.SERVICE_URL.DEFAULT_ZONE = http://eureka-server:8761/eureka
+      # - SPRING.CONFIG.IMPORT = optional:configserver:http://cloud-config-server:8888
+    ports:
+      - "8765:8765"
+  
+  zipkin-server:
+    image: openzipkin/zipkin
+    container_name: zipkin-server
+    restart: always
+    ports:
+      - "9411:9411"   
